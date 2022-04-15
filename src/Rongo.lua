@@ -19,7 +19,7 @@
 	License: MIT License
 	Contributors:
 		- Starnamics (Creator)
-	Documentation: N/A	
+	Documentation: https://devforum.roblox.com/t/rongo/1755615
 
 --]]
 
