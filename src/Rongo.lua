@@ -15,17 +15,18 @@
 	Rongo uses MongoDB's Data API, which is disabled by
 	default so you must enable it in your Atlas settings
 	
-	Version: 1.0.0
+	Version: 1.1.0
 	License: MIT License
 	Contributors:
 		- Starnamics (Creator)
-	Documentation: https://devforum.roblox.com/t/rongo/1755615
+	Documentation: N/A	
 
 --]]
 
 local HttpService = game:GetService("HttpService")
 
-local URI = "https://data.mongodb-api.com/app/%s/endpoint/data/beta"
+local APIVersion = "v1"
+local URI = "https://data.mongodb-api.com/app/%s/endpoint/data/"..APIVersion
 
 local ENDPOINTS = {
 	POST = {
@@ -66,6 +67,10 @@ function Rongo.new(AppId: string,Key: string)
 	Client["Key"] = Key
 	
 	return Client
+end
+
+function RongoClient:SetVersion(Version: "v1" | "beta")
+	URI = "https://data.mongodb-api.com/app/%s/endpoint/data/"..Version
 end
 
 function RongoClient:GetCluster(Name: string)
