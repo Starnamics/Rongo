@@ -1,9 +1,10 @@
 --[[
 
-	Rongo - MongoDB API Wrapper for Roblox
+	Rongo - MongoDB Atlas API Wrapper for Roblox
 	
-	Rongo gives developers easy access to MongoDBs web APIs
-	so they're able to use MongoDB directly in their games
+	Rongo gives developers easy access to MongoDB Atlas web 
+	APIs so they're able to use Atlas databases directly in 
+	their games.
 	
 	Rongo is a bare-bones module, meaning it contains only
 	the essentials, which can be used standalone or to
@@ -12,8 +13,8 @@
 	Some modules which use Rongo can be found on the Rongo
 	DevForum post!
 	
-	Rongo uses MongoDB's Data API, which is disabled by
-	default so you must enable it in your Atlas settings
+	Rongo uses the Atlas Data API, which is disabled by
+	default, so you must enable it in your Atlas settings.
 	
 	Version: 1.1.0
 	License: MIT License
