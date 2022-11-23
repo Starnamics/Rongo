@@ -1,6 +1,6 @@
 [package]
 name = "starnamics/rongo"
-description = "MongoDB communication module for ease of use"
+description = "MongoDB Atlas Data API wrapper for connecting Roblox to MongoDB"
 version = "1.1.0"
 license = "MIT"
 realm = "server"
