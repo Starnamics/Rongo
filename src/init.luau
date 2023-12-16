@@ -86,8 +86,8 @@ function RongoClient:SetVersion(Version: "v1" | "beta")
 end
 
 --- Creates a new Rongo cluster with the specified name.
---- @param Name The name of the cluster.
---- @return The newly created Rongo cluster.
+---@param Name The name of the cluster.
+---@return The newly created Rongo cluster.
 function RongoClient:GetCluster(Name: string)
 	local Cluster = {}
 	setmetatable(Cluster, RongoCluster)
@@ -99,8 +99,8 @@ function RongoClient:GetCluster(Name: string)
 end
 
 --- Creates a new database object within the Rongo cluster.
---- @param Name The name of the database.
---- @return Database The newly created database object.
+---@param Name The name of the database.
+---@return Database The newly created database object.
 function RongoCluster:GetDatabase(Name: string)
 	local Database = {}
 	setmetatable(Database, RongoDatabase)
@@ -113,8 +113,8 @@ function RongoCluster:GetDatabase(Name: string)
 end
 
 --- Retrieves a collection from the Rongo database.
---- @param Name The name of the collection to retrieve.
---- @return The retrieved collection.
+---@param Name The name of the collection to retrieve.
+---@return The retrieved collection.
 function RongoDatabase:GetCollection(Name: string)
 	local Collection = {}
 	setmetatable(Collection, RongoCollection)
@@ -202,8 +202,8 @@ function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}
 end
 
 --- Inserts a single document into the collection.
---- @param Document table: The document to be inserted.
---- @return string | nil: The inserted document's ID, or nil if the insertion failed.
+---@param Document table: The document to be inserted.
+---@return string | nil: The inserted document's ID, or nil if the insertion failed.
 function RongoCollection:InsertOne(Document: {[string]: any?}): string?
 	if not Document then
 		warn("[RONGO] Document argument cannot be empty") 
@@ -243,9 +243,9 @@ function RongoCollection:InsertOne(Document: {[string]: any?}): string?
 end
 
 --- Inserts multiple documents into the collection.
---- @param Documents table: A table containing multiple documents to be inserted.
+---@param Documents table: A table containing multiple documents to be inserted.
 --- Each document should be a table with string keys and any values.
---- @return table | nil: A table containing the inserted IDs if successful, or nil if the request failed.
+---@return table | nil: A table containing the inserted IDs if successful, or nil if the request failed.
 function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[number]: string}?
 	if not Documents then 
 		warn("[RONGO] Documents argument cannot be empty") 
@@ -285,10 +285,10 @@ function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[
 end
 
 --- Updates a single document in the collection that matches the specified filter.
---- @param Filter string The filter expression used to select the document to update.
---- @param Update table The update operation to apply to the selected document.
---- @param Upsert boolean (optional) If true, creates a new document if no document matches the filter.
---- @return table | nil A table containing the number of matched documents, modified documents, and the upserted ID if applicable. Returns nil if the update operation fails.
+---@param Filter string The filter expression used to select the document to update.
+---@param Update table The update operation to apply to the selected document.
+---@param Upsert boolean (optional) If true, creates a new document if no document matches the filter.
+---@return table | nil A table containing the number of matched documents, modified documents, and the upserted ID if applicable. Returns nil if the update operation fails.
 function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Upsert: boolean?): {["matchedCount"]: number, ["modifiedCount"]: number, ["upsertedId"]: string?}?
 	if not Filter then 
 		warn("[RONGO] Filter argument cannot be empty")
@@ -331,10 +331,10 @@ function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Ups
 end
 
 --- Updates multiple documents in the collection that match the specified filter.
---- @param Filter string The filter expression to match documents.
---- @param Update table The update operation to apply to the matched documents.
---- @param Upsert boolean (optional) Whether to perform an upsert operation if no documents match the filter.
---- @return table | nil A table containing the number of matched documents, modified documents, and the upserted ID (if upsert is true), or nil if the request fails.
+---@param Filter string The filter expression to match documents.
+---@param Update table The update operation to apply to the matched documents.
+---@param Upsert boolean (optional) Whether to perform an upsert operation if no documents match the filter.
+---@return table | nil A table containing the number of matched documents, modified documents, and the upserted ID (if upsert is true), or nil if the request fails.
 function RongoCollection:UpdateMany(Filter: string, Update: {[string]: any?}, Upsert: boolean?): {["matchedCount"]: number, ["modifiedCount"]: number, ["upsertedId"]: string?}?
 	if not Filter then 
 		warn("[RONGO] Filter argument cannot be empty") 
@@ -423,8 +423,8 @@ function RongoCollection:ReplaceOne(Filter: string, Replacement: any, Upsert: bo
 end
 
 --- Deletes a single document from the collection that matches the specified filter.
---- @param Filter string The filter expression used to match the document to be deleted.
---- @return number|nil The number of documents deleted, or nil if the request fails.
+---@param Filter string The filter expression used to match the document to be deleted.
+---@return number|nil The number of documents deleted, or nil if the request fails.
 function RongoCollection:DeleteOne(Filter: string): number?
 	if not Filter then 
 		warn("[RONGO] Filter argument cannot be empty") 
@@ -464,8 +464,8 @@ function RongoCollection:DeleteOne(Filter: string): number?
 end
 
 --- Deletes multiple documents from the collection based on the specified filter.
---- @param Filter string The filter expression used to select the documents to delete.
---- @return number|nil The number of documents deleted, or nil if the filter argument is empty or the request fails.
+---@param Filter string The filter expression used to select the documents to delete.
+---@return number|nil The number of documents deleted, or nil if the filter argument is empty or the request fails.
 function RongoCollection:DeleteMany(Filter: string): number?
 	if not Filter then 
 		warn("[RONGO] Filter argument cannot be empty") 
