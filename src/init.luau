@@ -26,8 +26,8 @@
 
 local HttpService = game:GetService("HttpService")
 
-local APIVersion = "v1"
-local URI = "https://data.mongodb-api.com/app/%s/endpoint/data/"..APIVersion
+local APIVersion: string = "v1"
+local URI: string = "https://data.mongodb-api.com/app/%s/endpoint/data/"..APIVersion
 
 local ENDPOINTS = {
 	POST = {
@@ -119,7 +119,7 @@ function RongoCollection:FindOne(Filter: {[string]: string | {[string]: string}}
 		["api-key"] = self["Client"]["Key"]
 	}
 	RequestData = HttpService:JSONEncode(RequestData)
-	local Success, Response = pcall(function()
+	local Success: boolean, Response = pcall(function()
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -152,7 +152,7 @@ function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -187,7 +187,7 @@ function RongoCollection:InsertOne(Document: {[string]: any?}): string?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -222,7 +222,7 @@ function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -264,7 +264,7 @@ function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Ups
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function()
+	local Success: boolean, Response = pcall(function()
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -305,7 +305,7 @@ function RongoCollection:UpdateMany(Filter: string, Update: {[string]: any?}, Up
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -346,7 +346,7 @@ function RongoCollection:ReplaceOne(Filter: string, Replacement: {[string]: any?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.ReplaceOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -380,7 +380,7 @@ function RongoCollection:DeleteOne(Filter: string): number?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function()
+	local Success: boolean, Response = pcall(function()
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -415,7 +415,7 @@ function RongoCollection:DeleteMany(Filter: string): number?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success,Response = pcall(function() 
+	local Success: boolean, Response = pcall(function() 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
