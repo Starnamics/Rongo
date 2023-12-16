@@ -1,6 +1,6 @@
 {
   "name": "rongo",
   "tree": {
-    "$path": "src"
+    "$path": "src/init.lua"
   }
 }
