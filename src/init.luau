@@ -119,8 +119,8 @@ function RongoCollection:FindOne(Filter: {[string]: string | {[string]: string}}
 		["api-key"] = self["Client"]["Key"]
 	}
 	RequestData = HttpService:JSONEncode(RequestData)
-	local Success,Response = pcall(function()
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.FindOne,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+	local Success, Response = pcall(function()
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -153,7 +153,7 @@ function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.FindMany,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -188,7 +188,7 @@ function RongoCollection:InsertOne(Document: {[string]: any?}): string?
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.InsertOne,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -223,7 +223,7 @@ function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.InsertMany,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -265,7 +265,7 @@ function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Ups
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function()
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.UpdateOne,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -306,7 +306,7 @@ function RongoCollection:UpdateMany(Filter: string, Update: {[string]: any?}, Up
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.UpdateMany,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -347,7 +347,7 @@ function RongoCollection:ReplaceOne(Filter: string, Replacement: {[string]: any?
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.ReplaceOne,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.ReplaceOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
@@ -381,11 +381,11 @@ function RongoCollection:DeleteOne(Filter: string): number?
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function()
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.DeleteOne,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
-		warn("[RONGO] Request Failed:",Response) 
+		warn("[RONGO] Request Failed:", Response) 
 		return 
 	end
 
@@ -416,11 +416,11 @@ function RongoCollection:DeleteMany(Filter: string): number?
 	RequestData = HttpService:JSONEncode(RequestData)
 
 	local Success,Response = pcall(function() 
-		return HttpService:PostAsync(string.format(URI,self["Client"]["AppId"])..ENDPOINTS.POST.DeleteMany,RequestData,Enum.HttpContentType.ApplicationJson,false,RequestHeaders) 
+		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
 	if not Success then 
-		warn("[RONGO] Request Failed:",Response) 
+		warn("[RONGO] Request Failed:", Response) 
 		return 
 	end
 
