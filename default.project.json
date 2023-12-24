@@ -1,6 +1,6 @@
 {
-  "name": "rongo",
+  "name": "Rongo",
   "tree": {
-    "$path": "src/init.lua"
+    "$path": "src/init.luau"
   }
 }
