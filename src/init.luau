@@ -21,8 +21,6 @@
 	Contributors:
 		- Starnamics (Creator)
 		- Midnightific (Contributor)
-	Documentation: As per function.
-
 --]]
 
 --// Initialization
