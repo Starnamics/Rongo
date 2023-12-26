@@ -1,3 +1,5 @@
+--!nonstrict
+
 --[[
 
 	Rongo - MongoDB Atlas API Wrapper for Roblox
@@ -21,6 +23,7 @@
 	Contributors:
 		- Starnamics (Creator)
 		- Midnightific (Contributor)
+
 --]]
 
 --// Initialization
@@ -28,7 +31,7 @@
 local HttpService = game:GetService("HttpService")
 
 local APIVersion: string = "v1"
-local URI: string = "https://data.mongodb-api.com/app/%s/endpoint/data/"..APIVersion
+local URI: string = string.format("https://data.mongodb-api.com/app/%s/endpoint/data/", APIVersion)
 
 local ENDPOINTS = {
 	POST = {
@@ -45,6 +48,7 @@ local ENDPOINTS = {
 }
 
 local Rongo = {}
+Rongo.__index = Rongo
 
 local RongoClient = {}
 RongoClient.__index = RongoClient
@@ -80,7 +84,7 @@ end
 --- Sets the version of the Rongo client.
 ---@param Version string The version to set. Must be either "v1" or "beta".
 function RongoClient:SetVersion(Version: "v1" | "beta")
-	URI = "https://data.mongodb-api.com/app/%s/endpoint/data/"..Version
+	URI = string.format("https://data.mongodb-api.com/app/%s/endpoint/data/", Version)
 end
 
 --- Creates a new Rongo cluster with the specified name.
@@ -141,7 +145,7 @@ function RongoCollection:FindOne(Filter: {[string]: string | {[string]: string}}
 		["api-key"] = self["Client"]["Key"]
 	}
 	RequestData = HttpService:JSONEncode(RequestData)
-	local Success: boolean, Response = pcall(function()
+	local Success: boolean, Response = pcall(function(): string
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -184,7 +188,7 @@ function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -222,7 +226,7 @@ function RongoCollection:InsertOne(Document: {[string]: any?}): string?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -264,7 +268,7 @@ function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -314,7 +318,7 @@ function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Ups
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function()
+	local Success: boolean, Response = pcall(function(): string
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -360,7 +364,7 @@ function RongoCollection:UpdateMany(Filter: string, Update: {[string]: any?}, Up
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -406,7 +410,7 @@ function RongoCollection:ReplaceOne(Filter: string, Replacement: any, Upsert: bo
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.ReplaceOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -443,7 +447,7 @@ function RongoCollection:DeleteOne(Filter: string): number?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function()
+	local Success: boolean, Response = pcall(function(): string
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
@@ -484,7 +488,7 @@ function RongoCollection:DeleteMany(Filter: string): number?
 
 	RequestData = HttpService:JSONEncode(RequestData)
 
-	local Success: boolean, Response = pcall(function() 
+	local Success: boolean, Response = pcall(function(): string 
 		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
 	end)
 
