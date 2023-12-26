@@ -1,0 +1,20 @@
+{
+    "name": "RongoDev",
+    "tree": {
+      "$className": "DataModel",
+
+      "ReplicatedStorage": {
+        "Rongo": {
+          "$path": "src"
+        }
+      },
+
+      "ServerScriptService": {
+        "Tests": {
+          "$className": "Folder",
+
+          // TODO: Add tests for all the different tables in init
+        }
+      }
+    }
+  }
