@@ -18,7 +18,7 @@
 	Rongo uses the Atlas Data API, which is disabled by
 	default, so you must enable it in your Atlas settings.
 	
-	Version: 1.1.0
+	Version: 1.2.3
 	License: MIT License
 	Contributors:
 		- Starnamics (Creator)
