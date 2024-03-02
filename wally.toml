@@ -1,7 +1,7 @@
 [package]
 name = "starnamics/rongo"
 description = "MongoDB Atlas Data API wrapper for connecting Roblox to MongoDB"
-version = "1.2.1"
+version = "2.0.0"
 license = "MIT"
 realm = "server"
 registry = "https://github.com/UpliftGames/wally-index"
