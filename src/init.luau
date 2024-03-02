@@ -2,36 +2,36 @@
 
 --[[
 
-	Rongo - MongoDB Atlas API Wrapper for Roblox
+	______                        
+	| ___ \                       
+	| |_/ /___  _ __   __ _  ___  
+	|    // _ \| '_ \ / _` |/ _ \ 
+	| |\ \ (_) | | | | (_| | (_) |
+	\_| \_\___/|_| |_|\__, |\___/ 
+	                   __/ |      
+	                  |___/       
+
+	Rongo - MongoDB API Wrapper for Roblox
 	
-	Rongo gives developers easy access to MongoDB Atlas web 
-	APIs so they're able to use Atlas databases directly in 
-	their games.
+	Rongo gives developers easy access to MongoDBs web APIs
+	so they're able to use MongoDB directly in their games
 	
-	Rongo is a bare-bones module, meaning it contains only
-	the essentials, which can be used standalone or to
-	develop modules which use Rongo at its core. 
+	Rongo uses MongoDB's Data API, which is disabled by
+	default so you must enable it in your Atlas settings
 	
-	Some modules which use Rongo can be found on the Rongo
-	DevForum post!
-	
-	Rongo uses the Atlas Data API, which is disabled by
-	default, so you must enable it in your Atlas settings.
-	
-	Version: 1.2.1
+	Version: 2.0.0
 	License: MIT License
-	Contributors:
-		- Starnamics (Creator)
-		- Midnightific (Contributor)
+	Documentation: https://devforum.roblox.com/t/rongo/1755615	
+	
+	Copyright (c) 2024 Untitled Games
 
 --]]
 
---// Initialization
+--// Services
 
 local HttpService = game:GetService("HttpService")
 
-local APIVersion: string = "v1"
-local URI: string = string.format("https://data.mongodb-api.com/app/%s/endpoint/data/", APIVersion)
+--// Constants
 
 local ENDPOINTS = {
 	POST = {
@@ -44,11 +44,90 @@ local ENDPOINTS = {
 		["ReplaceOne"] = "/action/replaceOne",
 		["DeleteOne"] = "/action/deleteOne",
 		["DeleteMany"] = "/action/deleteMany",
+		["Aggregate"] = "/action/aggregate",
 	}
 }
 
+--// Variables
+
+local Cache = {}
+
+--// Private Functions
+
+local function RongoError(message: string)
+	error("[RONGO] "..message.."\n",2)
+end
+
+local function RongoWarn(message: string,...)
+	warn("[RONGO] "..message,...)
+end
+
+local function ValidateStringArguments(Arguments: {[string]: any},Function: string)
+	local err = 0
+	for arg,value in pairs(Arguments) do
+		if type(value) ~= "string" then err = 1 continue elseif #value < 1 then err = 2 continue end
+	end
+	if err == 0 then return end
+	local keys = {}
+	for k in pairs(Arguments) do table.insert(keys,k) end
+	if err == 1 then
+		return RongoError(`{table.concat(keys,", ")} argument(s) in '{Function}' were not valid (must be a string)`)
+	elseif err == 2 then
+		return RongoError(`{table.concat(keys,", ")} argument(s) in '{Function}' were empty strings, please ensure they have content`)
+	end
+end
+
+local function CreateAuthHeaders(Auth: {[string]: string})
+	if not Auth or not Auth.Type then return end
+	if Auth.Type == "key" then
+		return {
+			["apiKey"] = Auth.Key
+		}
+	elseif Auth.Type == "emailpassword" then
+		return {
+			["email"] = Auth.Email,
+			["password"] = Auth.Password
+		}
+	elseif Auth.Type == "bearer" then
+		return {
+			["Authorization"] = "Bearer "..string.gsub(Auth.Token,"Bearer ","")
+		}
+	end
+	
+	return
+end
+
+local function RongoRequest(Url: string,Auth: any, Data: any)
+	local Success,Response = pcall(function() return HttpService:RequestAsync(	
+		{
+			Url = Url,
+			Method = "POST",
+			Headers = {
+				["apiKey"] = Auth and Auth["apiKey"],
+				["email"] = Auth and Auth["email"],
+				["password"] = Auth and Auth["password"],
+				["Authorization"] = Auth and Auth["Authorization"],
+				["Content-Type"] = "application/json",
+				["Accept"] = "application/json",
+				["Access-Control-Request-Headers"] = "*"
+			},
+			Body = HttpService:JSONEncode(Data) 
+		})
+	end)
+	
+	if not Success or not Response or not Response.Body then RongoError(`Failed to send request to {Url}`); RongoWarn("Response data:",Response) return end
+
+	local Body = HttpService:JSONDecode(Response.Body)
+	if Body and Body["error"] then RongoWarn(`Request returned an error with the following details:\nError message: {Body["error"]}\nError code: {Body["error_code"]}\nLink: {Body["link"]}\n`) end
+	if Response["Success"] == false then RongoWarn(`Request returned an error with the following details:\nError message: {Body}\nStatus code: {Response["StatusCode"]}\nStatus Message: {Response["StatusMessage"]}\n`) end
+	return Body or Response.Body
+end
+
+--// Main Module
+
 local Rongo = {}
-Rongo.__index = Rongo
+
+--// Classes
 
 local RongoClient = {}
 RongoClient.__index = RongoClient
@@ -62,448 +141,313 @@ RongoDatabase.__index = RongoDatabase
 local RongoCollection = {}
 RongoCollection.__index = RongoCollection
 
-local RongoDocument = {}
-RongoDocument.__index = RongoDocument
+--// Types 
 
---// Function
+export type RongoClient = typeof(RongoClient)
+export type RongoCluster = typeof(RongoCluster)
+export type RongoDatabase = typeof(RongoDatabase)
+export type RongoCollection = typeof(RongoCollection)
 
---- Creates a new instance of the Rongo client.
----@param AppId string The application ID.
----@param Key string The client key.
----@return table The new Rongo client instance.
-function Rongo.new(AppId: string, Key: string)
-	local Client = {}
-	setmetatable(Client, RongoClient)
-	
-	Client["AppId"] = AppId
-	Client["Key"] = Key
-	
-	return Client
+--// Functions
+
+function Rongo.new(Url: string,Key: string?) : RongoClient
+	ValidateStringArguments({Url = Url},"Rongo.new()")
+	return setmetatable({
+		_settings = {
+			Url = Url,
+			Auth = {
+				Key = Key,
+				Type = "key",
+			},
+		},
+		_type = "RongoClient"
+	},RongoClient)
 end
 
---- Sets the version of the Rongo client.
----@param Version string The version to set. Must be either "v1" or "beta".
-function RongoClient:SetVersion(Version: "v1" | "beta")
-	URI = string.format("https://data.mongodb-api.com/app/%s/endpoint/data/", Version)
-end
+--// Rongo Client
 
---- Creates a new Rongo cluster with the specified name.
----@param Name The name of the cluster.
----@return The newly created Rongo cluster.
-function RongoClient:GetCluster(Name: string)
-	local Cluster = {}
-	setmetatable(Cluster, RongoCluster)
-	
-	Cluster["Client"] = self
-	Cluster["Name"] = Name
-	
-	return Cluster
-end
-
---- Creates a new database object within the Rongo cluster.
----@param Name The name of the database.
----@return Database The newly created database object.
-function RongoCluster:GetDatabase(Name: string)
-	local Database = {}
-	setmetatable(Database, RongoDatabase)
-	
-	Database["Client"] = self["Client"]
-	Database["Cluster"] = self
-	Database["Name"] = Name
-	
-	return Database
-end
-
---- Retrieves a collection from the Rongo database.
----@param Name The name of the collection to retrieve.
----@return The retrieved collection.
-function RongoDatabase:GetCollection(Name: string)
-	local Collection = {}
-	setmetatable(Collection, RongoCollection)
-	
-	Collection["Client"] = self["Client"]
-	Collection["Cluster"] = self["Cluster"]
-	Collection["Database"] = self
-	Collection["Name"] = Name
-	
-	return Collection
-end
-
---- Finds and returns a single document from the collection that matches the specified filter.
---- If no filter is provided, it returns the first document found in the collection.
----@param Filter table | nil The filter to apply when searching for the document.
----@return table | nil The found document, or nil if no document matches the filter.
-function RongoCollection:FindOne(Filter: {[string]: string | {[string]: string}}?): {[string]: any?}?
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
+function RongoClient:SetEmailPasswordAuth(Email: string, Password: string)
+	if not self then return RongoWarn("Attempted to call 'RongoClient:SetEmailPasswordAuth()' without initializing a new client; you can do this with 'Rongo.new()'") end
+	ValidateStringArguments({Email = Email,Password = Password},"RongoClient:SetPasswordAuth()")
+	self._settings.Auth = {
+		Type = "emailpassword",
+		Email = Email,
+		Password = Password
 	}
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
-	RequestData = HttpService:JSONEncode(RequestData)
-	local Success: boolean, Response = pcall(function(): string
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response)
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-	if not Response["document"] then return nil end
-
-	return Response["document"]
 end
 
---- Finds multiple documents in the Rongo collection based on the specified filter, limit, sort, and skip parameters.
---- If no filter is provided, all documents in the collection will be returned.
---- If no limit is provided, all matching documents will be returned.
---- If no sort is provided, the documents will be returned in the order they were inserted.
---- If no skip is provided, no documents will be skipped.
----@param Filter table | nil The filter to apply to the documents. It can be a table of key-value pairs or nested tables of key-value pairs.
----@param Limit number | nil The maximum number of documents to return.
----@param Sort table | nil The sorting criteria for the documents. It can be a table of values to sort by.
----@param Skip number | nil The number of documents to skip before returning the results.
----@return table | nil An array of documents that match the specified filter, limit, sort, and skip parameters. Returns nil if the request fails or no documents are found.
-function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}}?, Limit: number?, Sort: {any?}?, Skip: number?): {[number]: {[string]: any?}}?
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
-		["limit"] = Limit or nil,
-		["sort"] = Sort or nil,
-		["skip"] = Skip or nil,
+function RongoClient:SetApiKeyAuth(Key: string)
+	if not self then return RongoWarn("Attempted to call 'RongoClient:SetApiKeyAuth()' without initializing a new client; you can do this with 'Rongo.new()'") end
+	ValidateStringArguments({Key = Key},"RongoClient:SetApiKeyAuth()")
+	self._settings.Auth = {
+		Type = "key",
+		Key = Key	
 	}
-
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
-
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.FindMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-	if not Response["documents"] then return nil end
-
-	return Response["documents"]
 end
 
---- Inserts a single document into the collection.
----@param Document table: The document to be inserted.
----@return string | nil: The inserted document's ID, or nil if the insertion failed.
-function RongoCollection:InsertOne(Document: {[string]: any?}): string?
-	if not Document then
-		warn("[RONGO] Document argument cannot be empty") 
-		return nil
-	end
+function RongoClient:SetBearerAuth(Token: string)
+	if not self then return RongoWarn("Attempted to call 'RongoClient:SetBearerAuth()' without initializing a new client; you can do this with 'Rongo.new()'") end
+	ValidateStringArguments({Token = Token},"RongoClient:SetBearer()")
+	self._settings.Auth = {
+		Type = "bearer",
+		Token = Token	
+	}
+end
 
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
+function RongoClient:GetCluster(Cluster: string) : RongoCluster
+	if not self then return RongoWarn("Attempted to call 'RongoClient:GetCluster()' without initializing a new client; you can do this with 'Rongo.new()'") end
+	ValidateStringArguments({Cluster = Cluster},"RongoClient:GetCluster()")
+	return setmetatable({
+		_cluster = Cluster,
+		_client = self,
+		_type = "RongoCluster"
+	},RongoCluster)
+end
+
+--// Rongo Cluster
+
+function RongoCluster:GetDatabase(Database: string) : RongoDatabase
+	if not self then return RongoWarn("Attempted to call 'RongoCluster:GetDatabase()' without initializing a cluster; you can do this with 'RongoClient:GetCluster()'") end
+	if self._type ~= "RongoCluster" or not self._client or not self._cluster then return RongoError("Missing required values on cluster object, please ensure you have correctly setup a new cluster") end
+	ValidateStringArguments({Database = Database},"RongoCluster:GetCluster()")
+	return setmetatable({
+		_cluster = self._cluster,
+		_client = self._client,
+		_database = Database,
+		_type = "RongoDatabase"
+	},RongoDatabase)
+end
+
+--// Rongo Database
+
+function RongoDatabase:GetCollection(Collection: string) : RongoCollection
+	if not self then return RongoWarn("Attempted to call 'RongoDatabase:GetCollection()' without initializing a database; you can do this with 'RongoCluster:GetDatabase()'") end
+	if self._type ~= "RongoDatabase" or not self._client or not self._cluster  or not self._database then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	ValidateStringArguments({Collection = Collection},"RongoDatabase:GetCollection()")
+	return setmetatable({
+		_cluster = self._cluster,
+		_client = self._client,
+		_database = self._database,
+		_collection = Collection,
+		_type = "RongoCollection"
+	},RongoCollection)
+end
+
+--// Rongo Collection
+
+function RongoCollection:FindOne(Filter: {[string]: string | {[string]: string}}?): {[string]: any}?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:FindOne()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
+	
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or {},
+	}
+	
+	local response = RongoRequest(url .. ENDPOINTS.POST.FindOne,authHeaders, bodyData)
+	if not response then return end
+	
+	if response["document"] then return response["document"] end
+	return response
+end
+
+function RongoCollection:FindMany(Filter: {[string]: string | {[string]: string}}?, Projection: {[string]: number}?, Sort: {[string]: number}?,Limit: number?, Skip: number?) : {{[string]: any}}?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:FindMany()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
+
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or "{}",
+		["projection"] = Projection,
+		["sort"] = Sort,
+		["limit"] = Limit,
+		["skip"] = Skip,
+	}
+
+	local response = RongoRequest(url .. ENDPOINTS.POST.FindMany,authHeaders, bodyData)
+	if not response then return end
+	
+	if response["documents"] then return response["documents"] end
+
+	return response
+end
+
+function RongoCollection:InsertOne(Document: {[string]: any}): string?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:InsertOne()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
+
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
 		["document"] = Document,
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.InsertOne,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	if not Response["insertedId"] then 
-		return nil 
-	end
-
-	return Response["insertedId"]
+	if response["insertedId"] then return response["insertedId"] end
+	return response
 end
 
---- Inserts multiple documents into the collection.
----@param Documents table: A table containing multiple documents to be inserted.
---- Each document should be a table with string keys and any values.
----@return table | nil: A table containing the inserted IDs if successful, or nil if the request failed.
-function RongoCollection:InsertMany(Documents: {[number]: {[string]: any?}}): {[number]: string}?
-	if not Documents then 
-		warn("[RONGO] Documents argument cannot be empty") 
-		return nil 
-	end
+function RongoCollection:InsertMany(Documents: {{[string]: any}}) : {string}?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:InsertMany()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
 		["documents"] = Documents,
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.InsertMany,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
+	if response["insertedIds"] then return response["insertedIds"] end
 
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.InsertMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	if not Response["insertedIds"] then 
-		return nil 
-	end
-
-	return Response["insertedIds"]
+	return response
 end
 
---- Updates a single document in the collection that matches the specified filter.
----@param Filter string The filter expression used to select the document to update.
----@param Update table The update operation to apply to the selected document.
----@param Upsert boolean (optional) If true, creates a new document if no document matches the filter.
----@return table | nil A table containing the number of matched documents, modified documents, and the upserted ID if applicable. Returns nil if the update operation fails.
-function RongoCollection:UpdateOne(Filter: string, Update: {[string]: any?}, Upsert: boolean?): {["matchedCount"]: number, ["modifiedCount"]: number, ["upsertedId"]: string?}?
-	if not Filter then 
-		warn("[RONGO] Filter argument cannot be empty")
-		return nil 
-	end
+function RongoCollection:UpdateOne(Filter: {[string]: string | {[string]: string}}?,Update: {[string]: {[string]: any}}?,Upsert: boolean): {matchedCount: number, modifiedCount: number}?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:UpdateOne()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	if not Update then 
-		warn("[RONGO] Update argument cannot be empty")
-		return nil 
-	end
-
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
-		["update"] = Update or nil,
-		["upsert"] = Upsert or nil,
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or {},
+		["update"] = Update,
+		["upsert"] = Upsert,
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.UpdateOne,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-	
-	return Response
+	return response
 end
 
---- Updates multiple documents in the collection that match the specified filter.
----@param Filter string The filter expression to match documents.
----@param Update table The update operation to apply to the matched documents.
----@param Upsert boolean (optional) Whether to perform an upsert operation if no documents match the filter.
----@return table | nil A table containing the number of matched documents, modified documents, and the upserted ID (if upsert is true), or nil if the request fails.
-function RongoCollection:UpdateMany(Filter: string, Update: {[string]: any?}, Upsert: boolean?): {["matchedCount"]: number, ["modifiedCount"]: number, ["upsertedId"]: string?}?
-	if not Filter then 
-		warn("[RONGO] Filter argument cannot be empty") 
-		return nil 
-	end
 
-	if not Update then 
-		warn("[RONGO] Update argument cannot be empty") 
-		return nil 
-	end
+function RongoCollection:UpdateMany(Filter: {[string]: string | {[string]: string}}?,Update: {[string]: {[string]: any}}?,Upsert: boolean): {matchedCount: number, modifiedCount: number}?
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:UpdateMany()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
-		["update"] = Update or nil,
-		["upsert"] = Upsert or nil,
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or {},
+		["update"] = Update,
+		["upsert"] = Upsert,
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.UpdateMany,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.UpdateMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	return Response
+	return response
 end
 
---- Replaces a single document in the collection that matches the specified filter.
----@param Filter string The filter expression to match documents.
----@param Replacement table The replacement document.
----@param Upsert boolean (optional) Whether to perform an upsert if no matching document is found.
----@return table | nil A table containing the number of matched documents, modified documents, and the upserted ID, or nil if the request fails.
-function RongoCollection:ReplaceOne(Filter: string, Replacement: any, Upsert: boolean?)
-	if not Filter then 
-		warn("[RONGO] Filter argument cannot be empty") 
-		return nil 
-	end
+function RongoCollection:DeleteOne(Filter: {[string]: string | {[string]: string}}?): number? 
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:DeleteOne()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	if not Replacement then 
-		warn("[RONGO] Update argument cannot be empty") 
-		return nil 
-	end
-
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
-		["replacement"] = Replacement,
-		["upsert"] = Upsert
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or {},
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.DeleteOne,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.ReplaceOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response)
-		return
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	return Response
+	if response["deletedCount"] then return response["deletedCount"] end
+	return response
 end
 
---- Deletes a single document from the collection that matches the specified filter.
----@param Filter string The filter expression used to match the document to be deleted.
----@return number|nil The number of documents deleted, or nil if the request fails.
-function RongoCollection:DeleteOne(Filter: string): number?
-	if not Filter then 
-		warn("[RONGO] Filter argument cannot be empty") 
-		return nil 
-	end
+function RongoCollection:DeleteMany(Filter: {[string]: string | {[string]: string}}?): number? 
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:DeleteMany()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["filter"] = Filter or {},
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.DeleteMany,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteOne, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	if not Response["deletedCount"] then 
-		return 0 
-	end
-
-	return Response["deletedCount"]
+	if response["deletedCount"] then return response["deletedCount"] end
+	return response
 end
 
---- Deletes multiple documents from the collection based on the specified filter.
----@param Filter string The filter expression used to select the documents to delete.
----@return number|nil The number of documents deleted, or nil if the filter argument is empty or the request fails.
-function RongoCollection:DeleteMany(Filter: string): number?
-	if not Filter then 
-		warn("[RONGO] Filter argument cannot be empty") 
-		return nil 
-	end
+function RongoCollection:Aggregate(Pipeline: {{[string]: any}}): {{[string]: any}}? 
+	if not self then return RongoWarn("Attempted to call 'RongoCollection:Aggregate()' without initializing a collection; you can do this with 'RongoDatabase:GetCollection()'") end
+	if self._type ~= "RongoCollection" or not self._client or not self._cluster  or not self._database or not self._collection then return RongoError("Missing required values on database object, please ensure you have correctly setup a new database") end
+	local url = self._client._settings.Url or nil
+	local auth = self._client._settings.Auth or nil
+	if not url or not auth then return RongoError("RongoClient contains invalid Url or Auth values, please ensure you have correctly initialized the client") end
+	local authHeaders = CreateAuthHeaders(auth)
+	if not authHeaders then return RongoError("RongoClient authorization was setup incorrectly, please ensure you have correctly initialized the client") end
 
-	local RequestData = {
-		["dataSource"] = self["Cluster"]["Name"],
-		["database"] = self["Database"]["Name"],
-		["collection"] = self["Name"],
-		["filter"] = Filter or nil,
+	local bodyData = {
+		["dataSource"] = self._cluster,
+		["database"] = self._database,
+		["collection"] = self._collection,
+		["pipeline"] = Pipeline,
 	}
 
-	local RequestHeaders = {
-		["Access-Control-Request-Headers"] = "*",
-		["api-key"] = self["Client"]["Key"]
-	}
+	local response = RongoRequest(url .. ENDPOINTS.POST.Aggregate,authHeaders, bodyData)
+	if not response then return end
 
-	RequestData = HttpService:JSONEncode(RequestData)
-
-	local Success: boolean, Response = pcall(function(): string 
-		return HttpService:PostAsync(string.format(URI, self["Client"]["AppId"])..ENDPOINTS.POST.DeleteMany, RequestData, Enum.HttpContentType.ApplicationJson, false, RequestHeaders) 
-	end)
-
-	if not Success then 
-		warn("[RONGO] Request Failed:", Response) 
-		return 
-	end
-
-	Response = HttpService:JSONDecode(Response)
-
-	if not Response["deletedCount"] then 
-		return 0 
-	end
-
-	return Response["deletedCount"]
+	return response
 end
 
 return Rongo
